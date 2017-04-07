@@ -9,13 +9,22 @@ separator <- '/'
 if(Sys.info()[['sysname']]=="Windows")
 {separator <- '\\' }
 
+#shapiro wilk test for normality
+swTestP <- function(x, na.rm = FALSE)
+{
+  st <- shapiro.test(log(x))
+  p <- st$p.value
+  return(p)
+}
+
+
 setUpDataFromCSVfile <- function(files, var.name) 
 {
   #find all csv files in current folder
   n.files <- length(files)
   
   #set up containers for data
-  quantities.of.interest = c("file.name","mean", "min", "max", "median")
+  quantities.of.interest = c("file.name","mean", "min", "max", "median", "swTestP")
   n.columns.of.interest <- length(quantities.of.interest)
   data.of.interest <- as.data.frame(matrix(ncol=n.columns.of.interest, nrow=n.files)) 
   
