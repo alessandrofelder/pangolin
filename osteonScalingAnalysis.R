@@ -9,14 +9,27 @@ separator <- '/'
 if(Sys.info()[['sysname']]=="Windows")
 {separator <- '\\' }
 
+
 #shapiro wilk test for normality
 swTestP <- function(x, na.rm = FALSE)
 {
-  st <- shapiro.test(log(x))
-  p <- st$p.value
+  if(length(x)>2){
+    st <- shapiro.test(log(x))
+    p <- st$p.value
+  }
+  else{
+      p<-1e-12
+    }
   return(p)
 }
+#helper functions
+substrRight <- function(x, n){
+  substr(x, nchar(x)-n+1, nchar(x))
+}
 
+#overall limits: 0.0037, 0.27
+#overall log limits: -5.6, -1.3
+all.intact.osteon.areas <- c()
 
 setUpDataFromCSVfile <- function(files, var.name) 
 {
@@ -40,6 +53,11 @@ setUpDataFromCSVfile <- function(files, var.name)
     if(!inherits(temp.data,"try-error"))
     {
       if(length(temp.data$Area)<minimumN) next()
+      if(substrRight(current.files[current.file],10)=="Intact.csv")
+      {
+        all.intact.osteon.areas <<- c(all.intact.osteon.areas, temp.data$Area)  
+      }
+      
       for(current.column in 2:(n.columns.of.interest))
       {
         current.quantity <- quantities.of.interest[current.column]
@@ -53,6 +71,7 @@ setUpDataFromCSVfile <- function(files, var.name)
   return(data.of.interest)
 }
 
+
 #set up all data: vars designates Osteons/Canals/etc
 setwd("/media/rvc_projects/Research_Storage/Doube_Michael/Felder/images/histomorphometry/Quekett/Quekett Collection/Autofluorescence/Analysis/ProcessedData/run-through-twice-more/")
 input.paths <- c(
@@ -61,10 +80,12 @@ input.paths <- c(
   "InfilledAreas"
 )  
 
+
 #get binomials and masses
 file.to.latin.map <- read.csv("/media/rvc_projects/Research_Storage/Doube_Michael/Felder/images/histomorphometry/sizeData/imageCorrespondenceMap.csv",header=TRUE,stringsAsFactors=FALSE)
+
 excludeUncertainSpecies = FALSE #to exclude uncertain species, set this to true
-minimumN=30; #minimum number of osteons present for a specimen to be included
+minimumN=0; #minimum number of osteons present for a specimen to be included
 excludeUncertainSpeciesString = "-all-species"
 if(excludeUncertainSpecies)
 {
@@ -89,6 +110,7 @@ for (current.input.path in 1:(length(input.paths)))
   assign(data.frame.name, current.data)
   vars.of.interest <- c(vars.of.interest, data.frame.name)
 }
+
 
 #derived variables
 infilling.ratio.data <- infilled.areas.data[,seq(2,5)]/intact.osteons.data[,seq(2,5)]
