@@ -51,15 +51,18 @@ puma.run3 <- puma.data[-which(is.na(puma.data[,3])),3]
 puma.combined.data <- c(puma.run1, puma.run2, puma.run3)
 puma.factors <- factor(rep(1:3, c(length(puma.run1),length(puma.run2),length(puma.run3))),labels=c("run 1","run 2","run 3"))
 
-boxplot(puma.combined.data~puma.factors,main="Bd 258")
-kruskal.test(puma.combined.data,puma.factors)
-
 shapiro.test(puma.run1)
 shapiro.test(puma.run2)
 shapiro.test(puma.run3)
 
+png(filename = "puma-validation.png", width=500, height = 500)
+boxplot(puma.combined.data~puma.factors, main="Repeated measures for Bd 37")
+kruskal.test(puma.combined.data,puma.factors)
+dev.off()
+
 puma.fit = lm(puma.combined.data~puma.factors)
 anova(puma.fit)
+
 
 
 #validate paca
@@ -69,15 +72,18 @@ paca.run3 <- paca.data[-which(is.na(paca.data[,3])),3]
 paca.combined.data <- c(paca.run1, paca.run2, paca.run3)
 paca.factors <- factor(rep(1:3, c(length(paca.run1),length(paca.run2),length(paca.run3))),labels=c("run 1","run 2","run 3"))
 
-boxplot(paca.combined.data~paca.factors,main="Bd 37")
-kruskal.test(paca.combined.data,paca.factors)
-
 shapiro.test(paca.run1)
 shapiro.test(paca.run2)
 shapiro.test(paca.run3)
 
+png(filename = "paca-validation.png", width=500, height = 500)
+boxplot(paca.combined.data~paca.factors, main="Repeated measures for Bd 167")
+kruskal.test(paca.combined.data,paca.factors)
+dev.off()
+
 paca.fit = lm(paca.combined.data~paca.factors)
 anova(paca.fit)
+
 
 
 #validate hippo
@@ -87,12 +93,14 @@ hippo.run3 <- hippo.data[-which(is.na(hippo.data[,3])),3]
 hippo.combined.data <- c(hippo.run1, hippo.run2, hippo.run3)
 hippo.factors <- factor(rep(1:3, c(length(hippo.run1),length(hippo.run2),length(hippo.run3))),labels=c("run 1","run 2","run 3"))
 
-boxplot(hippo.combined.data~hippo.factors, main="Bd 167")
-kruskal.test(hippo.combined.data,hippo.factors)
-
 shapiro.test(hippo.run1)
 shapiro.test(hippo.run2)
 shapiro.test(hippo.run3)
+
+png(filename = "hippo-validation.png", width=500, height = 500)
+boxplot(hippo.combined.data~hippo.factors, main="Repeated measures for Bd 167")
+kruskal.test(hippo.combined.data,hippo.factors)
+dev.off()
 
 hippo.fit = lm(hippo.combined.data~hippo.factors)
 anova(hippo.fit)
