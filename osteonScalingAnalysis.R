@@ -22,6 +22,7 @@ swTestP <- function(x, na.rm = FALSE)
     }
   return(p)
 }
+
 #helper functions
 substrRight <- function(x, n){
   substr(x, nchar(x)-n+1, nchar(x))
@@ -55,7 +56,7 @@ setUpDataFromCSVfile <- function(files, var.name)
       if(length(temp.data$Area)<minimumN) next()
       if(substrRight(current.files[current.file],10)=="Intact.csv")
       {
-        all.intact.osteon.areas <<- c(all.intact.osteon.areas, temp.data$Area)  
+        all.intact.osteon.areas <<- c(all.intact.osteon.areas, temp.data$Area)  #"<<-" : scopes in R are weird!
       }
       
       for(current.column in 2:(n.columns.of.interest))
@@ -85,6 +86,7 @@ input.paths <- c(
 file.to.latin.map <- read.csv("/media/rvc_projects/Research_Storage/Doube_Michael/Felder/images/histomorphometry/sizeData/imageCorrespondenceMap.csv",header=TRUE,stringsAsFactors=FALSE)
 
 excludeUncertainSpecies = FALSE #to exclude uncertain species, set this to true
+speciesMeasured=0
 minimumN=0; #minimum number of osteons present for a specimen to be included
 excludeUncertainSpeciesString = "-all-species"
 if(excludeUncertainSpecies)
@@ -236,8 +238,8 @@ plotScalingAnalysis <- function(fit.to.plot, data.to.plot, data.labels, y.label,
 }
 
 n.vars.of.interest <- length(vars.of.interest)
-csv.output <- as.data.frame(matrix(ncol = 4, nrow = 9))
-rownames(csv.output) <- c("b", "b^{-}", "b^{+}","a", "a^{-}", "a^{+}","R^2", "p_{\\textit{uncorrelated}}", "p_{\\textit{isometry}}")
+csv.output <- as.data.frame(matrix(ncol = 4, nrow = 12))
+rownames(csv.output) <- c("b", "b^{-}", "b^{+}","a", "a^{-}", "a^{+}","R^2", "p_{\\textit{uncorrelated}}", "p_{\\textit{isometry}}","p_{\\textit{shapiro-wilk}}", "\\rho^2","p_{\\textit{uncorrelated, non-parametric}}")
 
 isometric_exponents <- c(rep(2.0/3.0,3),0.0,1.0/3.0,-1.0/3.0)
 for(current.var.to.plot in 1:(n.vars.of.interest))
@@ -247,23 +249,36 @@ for(current.var.to.plot in 1:(n.vars.of.interest))
   png.file.name <- gsub("\\.","-",vars.of.interest[current.var.to.plot])
   png.file.name <- paste0(png.file.name,excludeUncertainSpeciesString,"-mean.png")
   fit.mean   <- sma(var.to.plot[,2]~mass.data,log="xy",Robust=T, slope.test=isometric_exponents[current.var.to.plot])
+  fit.mean$spearman.rho.squared <- (cor.test(log(var.to.plot[,2]),log(mass.data),method = "spearman")$estimate)^2
+  fit.mean$spearman.cor.test.p <- (cor.test(log(var.to.plot[,2]),log(mass.data),method = "spearman")$p.value)
+  fit.mean$shapiro.p <- shapiro.test(log(var.to.plot[,2]))$p.value
   plotScalingAnalysis(fit.mean,as.data.frame(cbind(mass.data,var.to.plot[,2])),data.labels = image.names$species.name,y.label = paste0("mean ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
   
   png.file.name <- gsub("\\.","-",vars.of.interest[current.var.to.plot])
   png.file.name <- paste0(png.file.name,excludeUncertainSpeciesString,"-min.png")
   var.to.plot[,3] <- replace(var.to.plot[,3], is.infinite(var.to.plot[,3]),NA) #avoid Inf values in sma call
-  fit.min    <- sma(var.to.plot[,3]~mass.data,log="xy",Robust=T, slope.test=isometric_exponents[current.var.to.plot])
+  fit.min <- sma(var.to.plot[,3]~mass.data,log="xy",Robust=T, slope.test=isometric_exponents[current.var.to.plot])
+  fit.min$spearman.rho.squared <- (cor.test(log(var.to.plot[,3]),log(mass.data),method = "spearman")$estimate)^2
+  fit.min$spearman.cor.test.p <- (cor.test(log(var.to.plot[,3]),log(mass.data),method = "spearman")$p.value)
+  fit.min$shapiro.p <- shapiro.test(log(var.to.plot[,3]))$p.value
+  
   plotScalingAnalysis(fit.min,as.data.frame(cbind(mass.data,var.to.plot[,2])),data.labels = image.names$species.name,y.label = paste0("minimum ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
   
   png.file.name <- gsub("\\.","-",vars.of.interest[current.var.to.plot])
   png.file.name <- paste0(png.file.name,excludeUncertainSpeciesString,"-max.png")
   var.to.plot[,4] <- replace(var.to.plot[,4], is.infinite(var.to.plot[,4]),NA) #avoid Inf values in sma call
   fit.max    <- sma(var.to.plot[,4]~mass.data,log="xy",Robust=T, slope.test=isometric_exponents[current.var.to.plot])
+  fit.max$spearman.rho.squared <- (cor.test(log(var.to.plot[,4]),log(mass.data),method = "spearman")$estimate)^2
+  fit.max$spearman.cor.test.p <- (cor.test(log(var.to.plot[,4]),log(mass.data),method = "spearman")$p.value)
+  fit.max$shapiro.p <- shapiro.test(log(var.to.plot[,4]))$p.value
   plotScalingAnalysis(fit.max,as.data.frame(cbind(mass.data,var.to.plot[,4])),data.labels = image.names$species.name,y.label = paste0("maximum ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
 
   png.file.name <- gsub("\\.","-",vars.of.interest[current.var.to.plot])
   png.file.name <- paste0(png.file.name,excludeUncertainSpeciesString,"-median.png")
   fit.median <- sma(var.to.plot[,5]~mass.data,log="xy",Robust=T, slope.test=isometric_exponents[current.var.to.plot])
+  fit.median$spearman.rho.squared <- (cor.test(log(var.to.plot[,5]),log(mass.data),method = "spearman")$estimate)^2
+  fit.median$spearman.cor.test.p <- (cor.test(log(var.to.plot[,5]),log(mass.data),method = "spearman")$p.value)
+  fit.median$shapiro.p <- shapiro.test(log(var.to.plot[,5]))$p.value
   plotScalingAnalysis(fit.median,as.data.frame(cbind(mass.data,var.to.plot[,5])),data.labels = image.names$species.name,y.label = paste0("median ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
   
 
@@ -276,7 +291,7 @@ for(current.var.to.plot in 1:(n.vars.of.interest))
   dev.off()
   sink(file = paste0(as.name(vars.of.interest[current.var.to.plot]),excludeUncertainSpeciesString,"-summary.txt"))
   png.file.name <- gsub("\\.","-",vars.of.interest[current.var.to.plot])
-  png(file = paste0(png.file.name,excludeUncertainSpeciesString,"-errors.png"), width = 400, height = 1000)
+  png(file = paste0(png.file.name,excludeUncertainSpeciesString,"-errors.png"), width = 1000, height = 1000)
   
   par(mfrow = c(5, 2))
   
@@ -288,6 +303,7 @@ for(current.var.to.plot in 1:(n.vars.of.interest))
     #assumption checking plots
     print(plot(main=fit.names[current.fit.to.output],fit, which="residual"))
     print(plot(main=fit.names[current.fit.to.output],fit, which="qq")) 
+    #
     
     #output raw summary 
     summary(fit) 
@@ -296,7 +312,8 @@ for(current.var.to.plot in 1:(n.vars.of.interest))
     #prepare formatted values
     csv.output.row <- unlist(c(fit$coef[[1]]$"coef(SMA)"[2],fit$coef[[1]]$"lower limit"[2], fit$coef[[1]]$"upper limit"[2],
                                10.0^fit$coef[[1]]$"coef(SMA)"[1],10.0^fit$coef[[1]]$"lower limit"[1], 10.0^fit$coef[[1]]$"upper limit"[1],
-                               fit$r2,fit$pval, fit$slopetest[[1]]$p, fit$invariance.test.p))
+                               fit$r2,fit$pval, fit$slopetest[[1]]$p, fit$invariance.test.p, fit$shapiro.p, fit$spearman.rho.squared, fit$spearman.cor.test.p))
+    
     csv.output.row.rounded <- signif(csv.output.row, 2)   
     csv.output[current.range[1]+current.fit.to.output-1] <- csv.output.row.rounded
   }
