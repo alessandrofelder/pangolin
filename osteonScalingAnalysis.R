@@ -86,6 +86,8 @@ input.paths <- c(
 file.to.latin.map <- read.csv("/media/rvc_projects/Research_Storage/Doube_Michael/Felder/images/histomorphometry/sizeData/imageCorrespondenceMap.csv",header=TRUE,stringsAsFactors=FALSE)
 
 excludeUncertainSpecies = FALSE #to exclude uncertain species, set this to true
+excludeHumeri = FALSE
+excludeFemora = TRUE
 speciesMeasured=0
 minimumN=0; #minimum number of osteons present for a specimen to be included
 excludeUncertainSpeciesString = "-all-species"
@@ -93,7 +95,20 @@ if(excludeUncertainSpecies)
 {
   excludeUncertainSpeciesString = "-uncertain-excluded"
 }
-excludeUncertainSpeciesString = paste0(excludeUncertainSpeciesString,"-minimumN-",minimumN)  
+
+if(excludeFemora)
+{
+  excludeUncertainSpeciesString = paste0(excludeUncertainSpeciesString,"-only-humeri")
+}
+if(excludeHumeri)
+{
+  excludeUncertainSpeciesString = paste0(excludeUncertainSpeciesString,"-only-femora")
+}
+
+if(minimumN>0)
+{
+  excludeUncertainSpeciesString = paste0(excludeUncertainSpeciesString,"-minimumN-",minimumN)  
+}
 vars.of.interest <- vector()
 for (current.input.path in 1:(length(input.paths)))
 { 
@@ -106,6 +121,14 @@ for (current.input.path in 1:(length(input.paths)))
   if(excludeUncertainSpecies)
   {
     current.data <- current.data[-which(file.to.latin.map$bool.species.certain=="species uncertain"),]
+  }
+  if(excludeFemora)
+  {
+    current.data <- current.data[-which(file.to.latin.map$bone=="femur"),]
+  }
+  if(excludeHumeri)
+  {
+    current.data <- current.data[-which(file.to.latin.map$bone=="humerus"),]
   }
   #save a copy of data frame with appropriate name
   data.frame.name <- tolower(paste0(current.var.name, ".data"))
@@ -227,7 +250,7 @@ getYUnit <- function(var.index) {
 plotScalingAnalysis <- function(fit.to.plot, data.to.plot, data.labels, y.label, plot.title,file.name){
   x.label <- "adult body mass [kg]"
   fit.coefficients <- fit.to.plot$coef[[1]]
-  p.value.tolerance <- 0.001
+  p.value.tolerance <- 0.005
   r2.value.tolerance <- 0.4
   if(fit.to.plot$pval<p.value.tolerance && fit.to.plot$r2>r2.value.tolerance){
     ggplot(data.to.plot, aes(x=data.to.plot[,1],y=data.to.plot[,2])) + geom_point()  + labs(title=plot.title, x = x.label, y = y.label) + theme_bw(base_size = 20) + geom_text_repel(label=data.labels,size=3,fontface = "italic")  + scale_x_log10(breaks = scales::trans_breaks("log10", function(x) 10^x)) + scale_y_log10(breaks = scales::trans_breaks("log10", function(x) 10^x)) + geom_abline(intercept=fit.coefficients$`coef(SMA)`[1],slope=fit.coefficients$`coef(SMA)`[2])+ annotation_logticks()
@@ -261,8 +284,7 @@ for(current.var.to.plot in 1:(n.vars.of.interest))
   fit.min$spearman.rho.squared <- (cor.test(log(var.to.plot[,3]),log(mass.data),method = "spearman")$estimate)^2
   fit.min$spearman.cor.test.p <- (cor.test(log(var.to.plot[,3]),log(mass.data),method = "spearman")$p.value)
   fit.min$shapiro.p <- shapiro.test(log(var.to.plot[,3]))$p.value
-  
-  plotScalingAnalysis(fit.min,as.data.frame(cbind(mass.data,var.to.plot[,2])),data.labels = image.names$species.name,y.label = paste0("minimum ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
+  plotScalingAnalysis(fit.min,as.data.frame(cbind(mass.data,var.to.plot[,3])),data.labels = image.names$species.name,y.label = paste0("minimum ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
   
   png.file.name <- gsub("\\.","-",vars.of.interest[current.var.to.plot])
   png.file.name <- paste0(png.file.name,excludeUncertainSpeciesString,"-max.png")
@@ -291,7 +313,7 @@ for(current.var.to.plot in 1:(n.vars.of.interest))
   dev.off()
   sink(file = paste0(as.name(vars.of.interest[current.var.to.plot]),excludeUncertainSpeciesString,"-summary.txt"))
   png.file.name <- gsub("\\.","-",vars.of.interest[current.var.to.plot])
-  png(file = paste0(png.file.name,excludeUncertainSpeciesString,"-errors.png"), width = 1000, height = 1000)
+  png(file = paste0(png.file.name,excludeUncertainSpeciesString,"-errors.png"), width = 1000, height = 2000)
   
   par(mfrow = c(5, 2))
   
