@@ -87,7 +87,7 @@ file.to.latin.map <- read.csv("/media/rvc_projects/Research_Storage/Doube_Michae
 
 excludeUncertainSpecies = FALSE #to exclude uncertain species, set this to true
 excludeHumeri = FALSE
-excludeFemora = TRUE
+excludeFemora = FALSE
 speciesMeasured=0
 minimumN=0; #minimum number of osteons present for a specimen to be included
 excludeUncertainSpeciesString = "-all-species"
@@ -252,12 +252,18 @@ plotScalingAnalysis <- function(fit.to.plot, data.to.plot, data.labels, y.label,
   fit.coefficients <- fit.to.plot$coef[[1]]
   p.value.tolerance <- 0.005
   r2.value.tolerance <- 0.4
-  if(fit.to.plot$pval<p.value.tolerance && fit.to.plot$r2>r2.value.tolerance){
-    ggplot(data.to.plot, aes(x=data.to.plot[,1],y=data.to.plot[,2])) + geom_point()  + labs(title=plot.title, x = x.label, y = y.label) + theme_bw(base_size = 20) + geom_text_repel(label=data.labels,size=3,fontface = "italic")  + scale_x_log10(breaks = scales::trans_breaks("log10", function(x) 10^x)) + scale_y_log10(breaks = scales::trans_breaks("log10", function(x) 10^x)) + geom_abline(intercept=fit.coefficients$`coef(SMA)`[1],slope=fit.coefficients$`coef(SMA)`[2])+ annotation_logticks()
-  }else{
-    ggplot(data.to.plot, aes(x=data.to.plot[,1],y=data.to.plot[,2])) + geom_point()  + labs(title=plot.title, x = x.label, y = y.label) + theme_bw(base_size = 20) + geom_text_repel(label=data.labels,size=3,fontface = "italic") + scale_x_log10(breaks = scales::trans_breaks("log10", function(x) 10^x)) + scale_y_log10(breaks = scales::trans_breaks("log10", function(x) 10^x))+ annotation_logticks()
+  adapted.y.label <- y.label;
+  if(substrRight(adapted.y.label, 4)=="mm2]")
+  {
+    adapted.y.label<-substr(adapted.y.label, 1, nchar(adapted.y.label)-3)
+    adapted.y.label<-substitute(label*m^2*"]", list(label=adapted.y.label))
   }
-  ggsave(file=file.name,scale=1)
+  if(fit.to.plot$pval<p.value.tolerance && fit.to.plot$r2>r2.value.tolerance){
+    ggplot(data.to.plot, aes(x=data.to.plot[,1],y=data.to.plot[,2])) + geom_point()  + labs(x = x.label, y = adapted.y.label) + theme_bw(base_size = 20) + geom_text_repel(label=data.labels,size=3,fontface = "italic")  + scale_x_log10(limits=c(0.1,NA),breaks = scales::trans_breaks("log10", function(x) 10^x)) + scale_y_log10(breaks = scales::trans_breaks("log10", function(x) 10^x)) + geom_abline(intercept=fit.coefficients$`coef(SMA)`[1],slope=fit.coefficients$`coef(SMA)`[2])+ annotation_logticks()
+  }else{
+    ggplot(data.to.plot, aes(x=data.to.plot[,1],y=data.to.plot[,2])) + geom_point()  + labs(x = x.label, y = adapted.y.label) + theme_bw(base_size = 20) + geom_text_repel(label=data.labels,size=3,fontface = "italic") + scale_x_log10(limits=c(0.1,NA),breaks = scales::trans_breaks("log10", function(x) 10^x)) + scale_y_log10(breaks = scales::trans_breaks("log10", function(x) 10^x))+ annotation_logticks()
+  }
+ ggsave(file=file.name,scale=1,dpi=600)
 }
 
 n.vars.of.interest <- length(vars.of.interest)
