@@ -86,6 +86,7 @@ input.paths <- c(
 file.to.latin.map <- read.csv("/media/rvc_projects/Research_Storage/Doube_Michael/Felder/images/histomorphometry/sizeData/imageCorrespondenceMap.csv",header=TRUE,stringsAsFactors=FALSE)
 
 excludeUncertainSpecies = FALSE #to exclude uncertain species, set this to true
+excludeFullyAquaticSpecies = FALSE
 excludeHumeri = FALSE
 excludeFemora = FALSE
 speciesMeasured=0
@@ -94,6 +95,11 @@ excludeUncertainSpeciesString = "-all-species"
 if(excludeUncertainSpecies)
 {
   excludeUncertainSpeciesString = "-uncertain-excluded"
+}
+
+if(excludeFullyAquaticSpecies)
+{
+  excludeUncertainSpeciesString = paste0(excludeUncertainSpeciesString,"-no-aquatic")
 }
 
 if(excludeFemora)
@@ -121,6 +127,10 @@ for (current.input.path in 1:(length(input.paths)))
   if(excludeUncertainSpecies)
   {
     current.data <- current.data[-which(file.to.latin.map$bool.species.certain=="species uncertain"),]
+  }
+  if(excludeFullyAquaticSpecies)
+  {
+    current.data <- current.data[-which(file.to.latin.map$lifestyle=="aquatic"),]
   }
   if(excludeFemora)
   {
@@ -161,6 +171,7 @@ image.names$image.name = gsub("_Intact.csv", ".tif", intact.osteons.data$intact.
 latin.to.mass.map <- read.table("/media/rvc_projects/Research_Storage/Doube_Michael/Felder/images/histomorphometry/sizeData/PanTHERIA_1-0_WR05_Aug2008_alldata_mastodon_and_palaeoloxodon_extended_paca_corrected.csv",header=TRUE, row.names=NULL,stringsAsFactors=FALSE, sep=",")
 
 mass.data <- vector(mode = "numeric", length = length(image.names$image.name))
+abbreviated.names <- vector(mode = "character", length = length(image.names$image.name))
 
 getLatinNameIndex <- function(image.name)
 {
@@ -204,9 +215,11 @@ for(i in 1:length(intact.osteons.data$intact.osteons.file.name))
   {
     print(paste("unclear species or missing latin name",i))
     image.names$species.name[i] <- NA
+    abbreviated.names[i]<- NA
   } else {
     image.names$species.name[i] <- file.to.latin.map$species.name[latin.name.index]
     #print(image.names$species.name[i])
+    abbreviated.names[i] <- abbreviate(image.names$species.name[i])
   }  
   mass.data[i] <- getMassFromLatinName(image.names$species.name[i])
   #mass.data[i] <- getSnoutVentLengthFromLatinName(image.names$species.name[i])
@@ -228,7 +241,7 @@ write.csv(out,paste0("uncorrectedData",excludeUncertainSpeciesString,".csv"))
 #run scaling analysis and plot results for med/min/max
 options(digits = 2, scipen =3)
 
-yLabels = c("osteon area", "canal area", "infill area", "infill ratio", "infill distance", "border ratio")
+yLabels = c("osteon area ", "canal area ", "infill area ", "infill ratio ", "infill distance ", "border ratio ")
 getYLabel <- function(var.index) {
 #  yl <- paste(tolower(vars.of.interest[var.index]), collapse=' ')
 #  yl <- gsub("haversian","Haversian",yl) 
@@ -259,16 +272,16 @@ plotScalingAnalysis <- function(fit.to.plot, data.to.plot, data.labels, y.label,
     adapted.y.label<-substitute(label*m^2*"]", list(label=adapted.y.label))
   }
   if(fit.to.plot$pval<p.value.tolerance && fit.to.plot$r2>r2.value.tolerance){
-    ggplot(data.to.plot, aes(x=data.to.plot[,1],y=data.to.plot[,2])) + geom_point()  + labs(x = x.label, y = adapted.y.label) + theme_bw(base_size = 20) + geom_text_repel(label=data.labels,size=3,fontface = "italic")  + scale_x_log10(limits=c(0.1,NA),breaks = scales::trans_breaks("log10", function(x) 10^x)) + scale_y_log10(breaks = scales::trans_breaks("log10", function(x) 10^x)) + geom_abline(intercept=fit.coefficients$`coef(SMA)`[1],slope=fit.coefficients$`coef(SMA)`[2])+ annotation_logticks()
+    ggplot(data.to.plot, aes(x=data.to.plot[,1],y=data.to.plot[,2])) + geom_point()  + labs(x = x.label, y = adapted.y.label) + theme_bw(base_size = 20) + geom_text_repel(label=data.labels,size=3,fontface = "italic",force=5)  + scale_x_log10(limits=c(0.1,NA),breaks = scales::trans_breaks("log10", function(x) 10^x)) + scale_y_log10(breaks = scales::trans_breaks("log10", function(x) 10^x)) + geom_abline(intercept=fit.coefficients$`coef(SMA)`[1],slope=fit.coefficients$`coef(SMA)`[2])+ annotation_logticks()
   }else{
-    ggplot(data.to.plot, aes(x=data.to.plot[,1],y=data.to.plot[,2])) + geom_point()  + labs(x = x.label, y = adapted.y.label) + theme_bw(base_size = 20) + geom_text_repel(label=data.labels,size=3,fontface = "italic") + scale_x_log10(limits=c(0.1,NA),breaks = scales::trans_breaks("log10", function(x) 10^x)) + scale_y_log10(breaks = scales::trans_breaks("log10", function(x) 10^x))+ annotation_logticks()
+    ggplot(data.to.plot, aes(x=data.to.plot[,1],y=data.to.plot[,2])) + geom_point()  + labs(x = x.label, y = adapted.y.label) + theme_bw(base_size = 20) + geom_text_repel(label=data.labels,size=3,fontface = "italic",force=5) + scale_x_log10(limits=c(0.1,NA),breaks = scales::trans_breaks("log10", function(x) 10^x)) + scale_y_log10(breaks = scales::trans_breaks("log10", function(x) 10^x))+ annotation_logticks()
   }
  ggsave(file=file.name,scale=1,dpi=600)
 }
 
 n.vars.of.interest <- length(vars.of.interest)
 csv.output <- as.data.frame(matrix(ncol = 4, nrow = 12))
-rownames(csv.output) <- c("b", "b^{-}", "b^{+}","a", "a^{-}", "a^{+}","R^2", "p_{\\textit{uncorrelated}}", "p_{\\textit{isometry}}","p_{\\textit{shapiro-wilk}}", "\\rho^2","p_{\\textit{uncorrelated, non-parametric}}")
+rownames(csv.output) <- c("b", "b^{-}", "b^{+}","a", "a^{-}", "a^{+}","R^2", "p_{\\textit{uncorrelated}}", "p_{\\textit{isometry}}","p_{\\textit{shapiro-wilk}}", "\\rho^2","p_{\\textit{non-param.}}")
 
 isometric_exponents <- c(rep(2.0/3.0,3),0.0,1.0/3.0,-1.0/3.0)
 for(current.var.to.plot in 1:(n.vars.of.interest))
@@ -281,7 +294,7 @@ for(current.var.to.plot in 1:(n.vars.of.interest))
   fit.mean$spearman.rho.squared <- (cor.test(log(var.to.plot[,2]),log(mass.data),method = "spearman")$estimate)^2
   fit.mean$spearman.cor.test.p <- (cor.test(log(var.to.plot[,2]),log(mass.data),method = "spearman")$p.value)
   fit.mean$shapiro.p <- shapiro.test(log(var.to.plot[,2]))$p.value
-  plotScalingAnalysis(fit.mean,as.data.frame(cbind(mass.data,var.to.plot[,2])),data.labels = image.names$species.name,y.label = paste0("mean ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
+  plotScalingAnalysis(fit.mean,as.data.frame(cbind(mass.data,var.to.plot[,2])),data.labels = abbreviated.names,y.label = paste0("mean ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
   
   png.file.name <- gsub("\\.","-",vars.of.interest[current.var.to.plot])
   png.file.name <- paste0(png.file.name,excludeUncertainSpeciesString,"-min.png")
@@ -290,7 +303,7 @@ for(current.var.to.plot in 1:(n.vars.of.interest))
   fit.min$spearman.rho.squared <- (cor.test(log(var.to.plot[,3]),log(mass.data),method = "spearman")$estimate)^2
   fit.min$spearman.cor.test.p <- (cor.test(log(var.to.plot[,3]),log(mass.data),method = "spearman")$p.value)
   fit.min$shapiro.p <- shapiro.test(log(var.to.plot[,3]))$p.value
-  plotScalingAnalysis(fit.min,as.data.frame(cbind(mass.data,var.to.plot[,3])),data.labels = image.names$species.name,y.label = paste0("minimum ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
+  plotScalingAnalysis(fit.min,as.data.frame(cbind(mass.data,var.to.plot[,3])),data.labels = abbreviated.names,y.label = paste0("minimum ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
   
   png.file.name <- gsub("\\.","-",vars.of.interest[current.var.to.plot])
   png.file.name <- paste0(png.file.name,excludeUncertainSpeciesString,"-max.png")
@@ -299,7 +312,7 @@ for(current.var.to.plot in 1:(n.vars.of.interest))
   fit.max$spearman.rho.squared <- (cor.test(log(var.to.plot[,4]),log(mass.data),method = "spearman")$estimate)^2
   fit.max$spearman.cor.test.p <- (cor.test(log(var.to.plot[,4]),log(mass.data),method = "spearman")$p.value)
   fit.max$shapiro.p <- shapiro.test(log(var.to.plot[,4]))$p.value
-  plotScalingAnalysis(fit.max,as.data.frame(cbind(mass.data,var.to.plot[,4])),data.labels = image.names$species.name,y.label = paste0("maximum ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
+  plotScalingAnalysis(fit.max,as.data.frame(cbind(mass.data,var.to.plot[,4])),data.labels = abbreviated.names,y.label = paste0("maximum ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
 
   png.file.name <- gsub("\\.","-",vars.of.interest[current.var.to.plot])
   png.file.name <- paste0(png.file.name,excludeUncertainSpeciesString,"-median.png")
@@ -307,7 +320,7 @@ for(current.var.to.plot in 1:(n.vars.of.interest))
   fit.median$spearman.rho.squared <- (cor.test(log(var.to.plot[,5]),log(mass.data),method = "spearman")$estimate)^2
   fit.median$spearman.cor.test.p <- (cor.test(log(var.to.plot[,5]),log(mass.data),method = "spearman")$p.value)
   fit.median$shapiro.p <- shapiro.test(log(var.to.plot[,5]))$p.value
-  plotScalingAnalysis(fit.median,as.data.frame(cbind(mass.data,var.to.plot[,5])),data.labels = image.names$species.name,y.label = paste0("median ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
+  plotScalingAnalysis(fit.median,as.data.frame(cbind(mass.data,var.to.plot[,5])),data.labels = abbreviated.names,y.label = paste0("median ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
   
 
   #redirect text and graphic output
