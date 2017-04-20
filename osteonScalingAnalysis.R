@@ -110,11 +110,11 @@ if(excludeHumeri)
 {
   excludeUncertainSpeciesString = paste0(excludeUncertainSpeciesString,"-only-femora")
 }
-
 if(minimumN>0)
 {
   excludeUncertainSpeciesString = paste0(excludeUncertainSpeciesString,"-minimumN-",minimumN)  
 }
+
 vars.of.interest <- vector()
 for (current.input.path in 1:(length(input.paths)))
 { 
@@ -259,22 +259,37 @@ getYUnit <- function(var.index) {
   y.units = c(rep("[mm2]",3),""," [mm]","")
   return(y.units[var.index])
 }
-
-plotScalingAnalysis <- function(fit.to.plot, data.to.plot, data.labels, y.label, plot.title,file.name){
-  x.label <- "adult body mass [kg]"
+hackyCounter<-0
+plotScalingAnalysis <- function(fit.to.plot, input.data, input.labels, y.label, plot.title,file.name){
+  if(hackyCounter==0||hackyCounter==4)
+  {
+    x.label <- ""
+  }
+  else
+  {
+    x.label <- "adult body mass [kg]"
+  }
+  hackyCounter<<-hackyCounter+1
+  
   fit.coefficients <- fit.to.plot$coef[[1]]
   p.value.tolerance <- 0.005
-  r2.value.tolerance <- 0.4
+  r2.value.tolerance <- 0.3
   adapted.y.label <- y.label;
+  data.to.plot <- input.data[-which(is.na(input.data[,2])),]
+  data.labels <- input.labels[-which(is.na(input.data[,2]))]
+  xmin <- min(data.to.plot[,1])
+  xmax <- max(data.to.plot[,1])
+  axminpb <- 10^fit.coefficients$`coef(SMA)`[1]*xmin^fit.coefficients$`coef(SMA)`[2]
+  axmaxpb <- 10^fit.coefficients$`coef(SMA)`[1]*xmax^fit.coefficients$`coef(SMA)`[2]
   if(substrRight(adapted.y.label, 4)=="mm2]")
   {
     adapted.y.label<-substr(adapted.y.label, 1, nchar(adapted.y.label)-3)
     adapted.y.label<-substitute(label*m^2*"]", list(label=adapted.y.label))
   }
   if(fit.to.plot$pval<p.value.tolerance && fit.to.plot$r2>r2.value.tolerance){
-    ggplot(data.to.plot, aes(x=data.to.plot[,1],y=data.to.plot[,2])) + geom_point()  + labs(x = x.label, y = adapted.y.label) + theme_bw(base_size = 20) + theme(panel.border = element_blank(), panel.grid.major = element_blank(),                             panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) + geom_text_repel(label=data.labels,size=3,fontface = "italic",force=5)  + scale_x_log10(limits=c(0.1,NA),breaks = scales::trans_breaks("log10", function(x) 10^x)) + scale_y_log10(breaks = scales::trans_breaks("log10", function(x) 10^x)) + geom_abline(intercept=fit.coefficients$`coef(SMA)`[1],slope=fit.coefficients$`coef(SMA)`[2])+ annotation_logticks()
+    ggplot(data.to.plot, aes(x=data.to.plot[,1],y=data.to.plot[,2]))+ geom_segment(aes(x = xmin, y = axminpb, xend = xmax, yend = axmaxpb)) + geom_point()  + labs(x = x.label, y = adapted.y.label) + theme_bw(base_size = 20) + theme(panel.border = element_blank(), panel.grid.major = element_blank(),                             panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) + geom_text_repel(label=data.labels,size=3,fontface = "italic",force=5)  + scale_x_log10(breaks = scales::trans_breaks("log10", function(x) 10^x)) + scale_y_log10(breaks = scales::trans_breaks("log10", function(x) 10^x)) 
   }else{
-    ggplot(data.to.plot, aes(x=data.to.plot[,1],y=data.to.plot[,2])) + geom_point()  + labs(x = x.label, y = adapted.y.label) + theme_bw(base_size = 20) + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) + geom_text_repel(label=data.labels,size=3,fontface = "italic",force=5) + scale_x_log10(limits=c(0.1,NA),breaks = scales::trans_breaks("log10", function(x) 10^x)) + scale_y_log10(breaks = scales::trans_breaks("log10", function(x) 10^x))+ annotation_logticks()
+    ggplot(data.to.plot, aes(x=data.to.plot[,1],y=data.to.plot[,2])) + geom_point()  + labs(x = x.label, y = adapted.y.label) + theme_bw(base_size = 20) + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) + geom_text_repel(label=data.labels,size=3,fontface = "italic",force=7) + scale_x_log10(breaks = scales::trans_breaks("log10", function(x) 10^x)) + scale_y_log10(breaks = scales::trans_breaks("log10", function(x) 10^x))
   }
  ggsave(file=file.name,scale=1,dpi=600)
 }
@@ -294,7 +309,7 @@ for(current.var.to.plot in 1:(n.vars.of.interest))
   fit.mean$spearman.rho.squared <- (cor.test(log(var.to.plot[,2]),log(mass.data),method = "spearman")$estimate)^2
   fit.mean$spearman.cor.test.p <- (cor.test(log(var.to.plot[,2]),log(mass.data),method = "spearman")$p.value)
   fit.mean$shapiro.p <- shapiro.test(log(var.to.plot[,2]))$p.value
-  plotScalingAnalysis(fit.mean,as.data.frame(cbind(mass.data,var.to.plot[,2])),data.labels = abbreviated.names,y.label = paste0("mean ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
+  plotScalingAnalysis(fit.mean,as.data.frame(cbind(mass.data,var.to.plot[,2])),input.labels = abbreviated.names,y.label = paste0("mean ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
   
   png.file.name <- gsub("\\.","-",vars.of.interest[current.var.to.plot])
   png.file.name <- paste0(png.file.name,excludeUncertainSpeciesString,"-min.png")
@@ -303,7 +318,7 @@ for(current.var.to.plot in 1:(n.vars.of.interest))
   fit.min$spearman.rho.squared <- (cor.test(log(var.to.plot[,3]),log(mass.data),method = "spearman")$estimate)^2
   fit.min$spearman.cor.test.p <- (cor.test(log(var.to.plot[,3]),log(mass.data),method = "spearman")$p.value)
   fit.min$shapiro.p <- shapiro.test(log(var.to.plot[,3]))$p.value
-  plotScalingAnalysis(fit.min,as.data.frame(cbind(mass.data,var.to.plot[,3])),data.labels = abbreviated.names,y.label = paste0("minimum ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
+  plotScalingAnalysis(fit.min,as.data.frame(cbind(mass.data,var.to.plot[,3])),input.labels = abbreviated.names,y.label = paste0("minimum ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
   
   png.file.name <- gsub("\\.","-",vars.of.interest[current.var.to.plot])
   png.file.name <- paste0(png.file.name,excludeUncertainSpeciesString,"-max.png")
@@ -312,7 +327,7 @@ for(current.var.to.plot in 1:(n.vars.of.interest))
   fit.max$spearman.rho.squared <- (cor.test(log(var.to.plot[,4]),log(mass.data),method = "spearman")$estimate)^2
   fit.max$spearman.cor.test.p <- (cor.test(log(var.to.plot[,4]),log(mass.data),method = "spearman")$p.value)
   fit.max$shapiro.p <- shapiro.test(log(var.to.plot[,4]))$p.value
-  plotScalingAnalysis(fit.max,as.data.frame(cbind(mass.data,var.to.plot[,4])),data.labels = abbreviated.names,y.label = paste0("maximum ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
+  plotScalingAnalysis(fit.max,as.data.frame(cbind(mass.data,var.to.plot[,4])),input.labels = abbreviated.names,y.label = paste0("maximum ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
 
   png.file.name <- gsub("\\.","-",vars.of.interest[current.var.to.plot])
   png.file.name <- paste0(png.file.name,excludeUncertainSpeciesString,"-median.png")
@@ -320,7 +335,7 @@ for(current.var.to.plot in 1:(n.vars.of.interest))
   fit.median$spearman.rho.squared <- (cor.test(log(var.to.plot[,5]),log(mass.data),method = "spearman")$estimate)^2
   fit.median$spearman.cor.test.p <- (cor.test(log(var.to.plot[,5]),log(mass.data),method = "spearman")$p.value)
   fit.median$shapiro.p <- shapiro.test(log(var.to.plot[,5]))$p.value
-  plotScalingAnalysis(fit.median,as.data.frame(cbind(mass.data,var.to.plot[,5])),data.labels = abbreviated.names,y.label = paste0("median ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
+  plotScalingAnalysis(fit.median,as.data.frame(cbind(mass.data,var.to.plot[,5])),input.labels = abbreviated.names,y.label = paste0("median ",getYLabel(current.var.to.plot),getYUnit(current.var.to.plot)),plot.title="",file.name = png.file.name)
   
 
   #redirect text and graphic output
