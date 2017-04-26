@@ -61,12 +61,12 @@ tree$tip.label[which(tree$tip.label=="Agouti_paca")]="Cuniculus_paca"
 
 #adapt binomials without changing the essence of the phylogeny
 tree$tip.label[which(tree$tip.label=="Elephas_maximus")]="Palaeoloxodon_namadicus"
-tree$tip.label[which(tree$tip.label=="Sphiggurus_mexicanus")]="Sphiggurus_melanurus" #this may slightly change our results due to the relationship of Erethizontidae, Cunuculidae and Hystricidae - will not affect conclusions though.
+tree$tip.label[which(tree$tip.label=="Sphiggurus_mexicanus")]="Sphiggurus_melanurus" #watch out for the relationship of Erethizontidae, Cunuculidae and Hystricidae. Does not matter for our analysis, as porcupine specimen has no secondary osteons
 
 #replace random bat species with "Chiroptera sp" as we have little idea of what the species was. Exact species will not make any difference to phyloCorrection as it is the only bat species in the sample
 tree$tip.label[which(tree$tip.label=="Pteropus_conspicillatus")]="Chiroptera"
 
-uncorrected.data<-read.csv("./uncorrectedData-uncertain-excluded.csv",row.names=1)
+uncorrected.data<-read.csv("./uncorrectedData-all-species.csv",row.names=1)
 binomials <- make.names(uncorrected.data$image.names.species.name,FALSE)
 binomials <- gsub('\\.','_',binomials)
 dummy.data <- as.matrix(rep(1,length(binomials)))
